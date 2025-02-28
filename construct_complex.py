@@ -9,8 +9,47 @@ This script is for the construction of the simplicial complex
 """
 
 import gudhi
+import pandas as pd
 import matplotlib.pyplot as plt
 plt.rcParams['text.usetex'] = False #so we do not get the LaTeX error
+
+import csv
+
+
+class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+        self.components = {i: {i} for i in range(n)}  # Initialize each point in its own component
+
+
+    def find(self, x):
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])  # Path compression
+        return self.parent[x]
+
+
+    def union(self, x, y):
+        root_x = self.find(x)
+        root_y = self.find(y)
+        
+        if root_x != root_y:            
+            # Perform union
+            if self.rank[root_x] > self.rank[root_y]:
+                self.parent[root_y] = root_x
+                self.components[root_x].update(self.components[root_y])  # Merge the components
+                del self.components[root_y]
+            else:
+                self.parent[root_x] = root_y
+                self.components[root_y].update(self.components[root_x])  # Merge the components
+                del self.components[root_x]
+                if self.rank[root_x] == self.rank[root_y]:
+                    self.rank[root_y] += 1
+            return root_x, root_y
+        return None, None
+
+
+
 
 def construct_calculate(data_array, max_dimension, max_edge_length):
     """
@@ -28,15 +67,65 @@ def construct_calculate(data_array, max_dimension, max_edge_length):
         
         # Construct a Vietoris-Rips complex from the data points with the specified maximum edge length
         rips_complex = gudhi.RipsComplex(points=data_array, max_edge_length=max_edge_length)
+        print("rips constructed")
         
         # Create a simplex tree from the Rips complex with the specified maximum dimension
         simplex_tree = rips_complex.create_simplex_tree(max_dimension=max_dimension)
+        print("simplex constructed")
 
         # Compute the persistence of the simplex tree (the birth and death of homological features)
         persistence = simplex_tree.persistence()
+        print("persistence computed")
         
         # Print the persistence intervals to the console for debugging and verification
         #print(f"Persistence intervals: {persistence}")
+                
+        # To get the points that contribute to the persistence we need the following.
+
+        n_points = len(data_array)
+        uf = UnionFind(n_points)
+
+
+        # Get an appropriate max filtration value
+        max_filtration = max([simplex_tree.filtration(s) for s, _ in simplex_tree.persistence_pairs()], default=0) + 1.0
+
+        output_csv_contributing_points_file = "output.csv" 
+        with open(output_csv_contributing_points_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Dimension", "Filtration (Birth)", "Filtration (Death)", "Simplex", "Merged Components"])
+
+
+            for birth_death, simplex in simplex_tree.persistence_pairs():
+
+
+                death_simplex = simplex  # The simplex that appears at this stage
+                death_filtration = simplex_tree.filtration(death_simplex)  # Extract the correct filtration value
+
+
+                if len(birth_death) > 1:
+                    birth_filtration = simplex_tree.filtration(birth_death)
+                else:
+                    birth_filtration = 0  # Handles unbounded features
+
+
+                simplex_indices = tuple(sorted(simplex))
+
+
+                if len(simplex_indices) == 1:  # 0D feature (single point)
+                    writer.writerow([0, birth_filtration, death_filtration, simplex_indices, "N/A"])
+                else:  # 1D or higher feature
+                    if len(simplex_indices) == 2:  # Edge causing component merge
+                        p1, p2 = simplex_indices
+                        old_comp, new_comp = uf.union(p1, p2)
+                        if old_comp is not None:
+                            merged_component = f"Component {uf.components.get(new_comp, old_comp)} merged with {uf.components.get(old_comp, new_comp)}"
+
+
+                    writer.writerow([len(simplex_indices)-2, birth_filtration, death_filtration, simplex_indices, merged_component])
+
+
+        print(f"All bar information saved to {output_csv_contributing_points_file}")
+
 
         # Return the persistence intervals for further use if needed
         return persistence

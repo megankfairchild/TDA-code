@@ -19,7 +19,10 @@ import construct_complex as cc
 import construct_mapper as cmapper 
 
 #Step 1: import the CSV of the data set
-dataset = "data_numerical_women.csv"  # whichever we are currently analyzing. make sure it is in the same folder as the script. 
+dataset = "west.csv"  # whichever we are currently analyzing. make sure it is in the same folder as the script. 
+#now name the output files 
+output_file_barcodes = 'persistenceBarcodes_cdc_west.png'
+output_file_graph = 'persistenceGraph_cdc_west.png'
 
 """
 Step 2: we will ensure the dataset is what we are expecting. 
@@ -74,14 +77,10 @@ normalized_data = z_score_normalize(data_array)
 change and edit the parameters for computing persistent homology here 
 """
 
-max_dimension = 4 
-max_edge_length = 6.0
-output_file_barcodes = 'persistenceBarcodesMen.png'
-output_file_graph = 'persistenceGraphMen.png'
+max_dimension = 2 
+max_edge_length = 3.5
 # Call the function with the specified parameters
 persistence = cc.construct_calculate(normalized_data, max_dimension, max_edge_length)
-
-    
 
 
 # Now compute the persistence barcodes or graph 
@@ -99,13 +98,17 @@ except Exception as e:
 
 
 # Now mapper time
-output_file_mapper = 'mapper_output_men.png'
 num_intervals = 20
 overlap_frac = 0.3
 try:
-    cmapper.construct_mapper_graph(normalized_data, num_intervals, overlap_frac, output_file_mapper)
+    cmapper.construct_mapper_graph_3D(normalized_data, num_intervals, overlap_frac)
 except Exception as e:
     print(f"An error occurred during the persistence graph: {e}")  
+    
+try:
+    cmapper.construct_mapper_graph_2D(normalized_data, num_intervals, overlap_frac)
+except Exception as e:
+    print(f"An error occurred during the persistence graph: {e}")      
 
 
 
