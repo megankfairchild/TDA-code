@@ -69,7 +69,6 @@ def z_score_normalize(data): #the function to normalize the data
 
 normalized_data = z_score_normalize(data_array)
 
-
 #next hand the numpy array to GUDHI 
 
 # Step 4: Compute a Rips complex
@@ -77,8 +76,8 @@ normalized_data = z_score_normalize(data_array)
 change and edit the parameters for computing persistent homology here 
 """
 
-max_dimension = 2 
-max_edge_length = 3.5
+max_dimension = 2
+max_edge_length = 2.0
 # Call the function with the specified parameters
 persistence = cc.construct_calculate(normalized_data, max_dimension, max_edge_length)
 

@@ -14,7 +14,9 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 #from kepler_mapper import KeplerMapper
 import networkx as nx
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
+from scipy.spatial.distance import pdist, squareform
+
 
 def construct_mapper_graph_3D(data_array, num_intervals, overlap_frac):
 
@@ -38,6 +40,20 @@ def construct_mapper_graph_3D(data_array, num_intervals, overlap_frac):
         pca = PCA(n_components=3)  # Reduce the data to 3 principal components.
         reduced_data = pca.fit_transform(data_array)  # Apply PCA on the input data.
         
+        """
+        original_distances = squareform(pdist(data_array))  # Distances in original space
+        pca_distances = squareform(pdist(reduced_data))  # Distances in PCA space     
+        print(f"Original distance range: {original_distances.min()} to {original_distances.max()}")
+        print(f"PCA distance range: {pca_distances.min()} to {pca_distances.max()}")
+
+        I was concerned with the distances used in the Vietoris Rips compared to the mapper clustering for consistency issues. 
+        The output from the print with eps=30, min_samples=10, num_intervals= 20, overlap_frac = 0.3 
+        AND VR parameters: max_dimension = 2, max_edge_length = 2.0
+        resulted in the following: 
+        Original distance range: 0.0 to 20.553035938833688
+        PCA distance range: 0.0 to 20.313857718359444
+        """
+        
         dbscan = DBSCAN(eps=30, min_samples=10) #epsilon is distance between points, min_samples is the minimum number of points required to form a dense region 
         #(i.e., a cluster). A point is considered "core" if it has at least min_samples points (including itself) within its eps-radius.
         clusters = dbscan.fit_predict(reduced_data)
@@ -48,7 +64,9 @@ def construct_mapper_graph_3D(data_array, num_intervals, overlap_frac):
         #projected_data = mapper.fit_transform(data_array, projection=[0,1]) # X-Y axis
         
         # Create a cover with 10 elements
-        cover = km.Cover(n_cubes=10)
+        #cover = km.Cover(n_cubes=10)
+        cover = km.Cover(n_cubes=num_intervals, perc_overlap=overlap_frac)
+
 
         # Create dictionary called 'graph' with nodes, edges and meta-information
         graph = mapper.map(reduced_data, cover=cover)
@@ -106,7 +124,9 @@ def construct_mapper_graph_2D(data_array, num_intervals, overlap_frac):
         #projected_data = mapper.fit_transform(data_array, projection=[0,1]) # X-Y axis
         
         # Create a cover with 10 elements
-        cover = km.Cover(n_cubes=10)
+        #cover = km.Cover(n_cubes=10)
+        cover = km.Cover(n_cubes=num_intervals, perc_overlap=overlap_frac)
+
 
         # Create dictionary called 'graph' with nodes, edges and meta-information
         graph = mapper.map(reduced_data, cover=cover)

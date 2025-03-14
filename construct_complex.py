@@ -119,9 +119,7 @@ def construct_calculate(data_array, max_dimension, max_edge_length):
                         old_comp, new_comp = uf.union(p1, p2)
                         if old_comp is not None:
                             merged_component = f"Component {uf.components.get(new_comp, old_comp)} merged with {uf.components.get(old_comp, new_comp)}"
-
-
-                    writer.writerow([len(simplex_indices)-2, birth_filtration, death_filtration, simplex_indices, merged_component])
+                            writer.writerow([len(simplex_indices)-2, birth_filtration, death_filtration, simplex_indices, merged_component])
 
 
         print(f"All bar information saved to {output_csv_contributing_points_file}")
